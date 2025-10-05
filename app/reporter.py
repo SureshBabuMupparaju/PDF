@@ -14,7 +14,7 @@ def build_summary_table(results: Iterable[ComparisonResult]) -> pd.DataFrame:
     rows: List[Dict[str, object]] = []
     for result in results:
         counts = result.summary_counts()
-        categories = result.diff_category_totals()
+        categories = result.span_category_totals()
         rows.append(
             {
                 "Golden": result.source_name,
@@ -23,9 +23,11 @@ def build_summary_table(results: Iterable[ComparisonResult]) -> pd.DataFrame:
                 "Textual": counts.get("textual", 0),
                 "Layout": counts.get("layout", 0),
                 "Structural": counts.get("structural", 0),
-                "Missing": categories.get("missing", 0),
+                "Matches": result.match_total(),
+                "Mismatches": categories.get("mismatch", 0),
+                "Spelling": categories.get("spelling", 0),
                 "Extra": categories.get("extra", 0),
-                "Modified": categories.get("modified", 0),
+                "Missing": categories.get("missing", 0),
             }
         )
     return pd.DataFrame(rows)
@@ -35,7 +37,7 @@ def build_page_table(result: ComparisonResult) -> pd.DataFrame:
     rows: List[Dict[str, object]] = []
     for page in result.pages:
         summary = page.difference_summary()
-        categories = page.diff_category_counts()
+        categories = page.span_category_counts()
         rows.append(
             {
                 "Target": result.target_name,
@@ -43,9 +45,11 @@ def build_page_table(result: ComparisonResult) -> pd.DataFrame:
                 "Textual": summary.get("textual", 0),
                 "Layout": summary.get("layout", 0),
                 "Structural": summary.get("structural", 0),
-                "Missing": categories.get("missing", 0),
+                "Matches": page.match_count(),
+                "Mismatches": categories.get("mismatch", 0),
+                "Spelling": categories.get("spelling", 0),
                 "Extra": categories.get("extra", 0),
-                "Modified": categories.get("modified", 0),
+                "Missing": categories.get("missing", 0),
                 "Status": "FAIL" if page.has_differences() else "PASS",
             }
         )
@@ -54,7 +58,7 @@ def build_page_table(result: ComparisonResult) -> pd.DataFrame:
 
 def build_detail_rows(result: ComparisonResult) -> List[ReportRow]:
     rows: List[ReportRow] = []
-    pair_label = f"{result.source_name} ➜ {result.target_name}"
+    pair_label = f"{result.source_name} -> {result.target_name}"
     for page in result.pages:
         for diff in page.span_diffs:
             rows.append(
@@ -64,6 +68,7 @@ def build_detail_rows(result: ComparisonResult) -> List[ReportRow]:
                     diff_type=diff.diff_type,
                     description=diff.detail or (diff.target_span.text if diff.target_span else "Text changed"),
                     preview_ref=f"page-{page.page_number}",
+                    category=diff.category,
                 )
             )
         for diff in page.layout_diffs:
@@ -74,6 +79,7 @@ def build_detail_rows(result: ComparisonResult) -> List[ReportRow]:
                     diff_type=DiffType.LAYOUT,
                     description=diff.detail or "Layout difference",
                     preview_ref=f"page-{page.page_number}",
+                    category="layout",
                 )
             )
         for diff in page.structural_diffs:
@@ -84,6 +90,7 @@ def build_detail_rows(result: ComparisonResult) -> List[ReportRow]:
                     diff_type=DiffType.STRUCTURE,
                     description=diff.description,
                     preview_ref=f"page-{page.page_number}",
+                    category="structural",
                 )
             )
     return rows

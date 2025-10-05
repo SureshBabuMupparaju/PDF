@@ -13,6 +13,7 @@ DIFF_CLASS_MAP = {
     "missing": "diff-missing",
     "extra": "diff-extra",
     "modified": "diff-modified",
+    "match": "diff-match",
 }
 
 COLOR_LEGEND = [
@@ -31,10 +32,10 @@ STREAMLIT_STYLES = """
 .pdf-compare-column {
     flex: 1;
     border: 1px solid #d0d7ff;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 0.9rem 1rem;
     background: #f8faff;
-    box-shadow: inset 0 0 0 1px rgba(88, 112, 255, 0.04);
+    box-shadow: inset 0 0 0 1px rgba(88, 112, 255, 0.05);
     max-height: 600px;
     overflow-y: auto;
 }
@@ -46,9 +47,6 @@ STREAMLIT_STYLES = """
 .pdf-page-text span {
     display: inline;
     line-height: 1.5;
-}
-.pdf-page-text br {
-    line-height: 1.25;
 }
 .diff-missing {
     background: rgba(255, 105, 97, 0.32);
@@ -69,19 +67,15 @@ STREAMLIT_STYLES = """
 REPORT_STYLES = """
 <style>
 :root {
-    --bg-gradient: radial-gradient(circle at top left, #f1f4ff 0%, #f8fbff 35%, #eef2ff 70%, #fdfcff 100%);
+    --bg-gradient: radial-gradient(circle at 10% -20%, #eef2ff 0%, #f9fbff 55%, #fdfdff 100%);
     --surface: #ffffff;
-    --surface-muted: rgba(255, 255, 255, 0.78);
-    --border-color: rgba(102, 126, 255, 0.15);
-    --shadow-soft: 0 24px 60px rgba(20, 33, 83, 0.12);
-    --shadow-card: 0 14px 38px rgba(54, 90, 200, 0.14);
-    --text-primary: #12205c;
-    --text-secondary: #4a5a88;
-    --accent: #4f46e5;
-    --accent-soft: rgba(79, 70, 229, 0.12);
-    --badge-missing: #ff6b6b;
-    --badge-extra: #4f8bff;
-    --badge-modified: #f6b73c;
+    --border: rgba(109, 127, 255, 0.18);
+    --shadow-soft: 0 24px 52px rgba(64, 80, 181, 0.16);
+    --shadow-card: 0 18px 44px rgba(37, 56, 130, 0.18);
+    --text: #0f1f47;
+    --text-subtle: #54608c;
+    --accent: #4338ca;
+    --accent-soft: rgba(67, 56, 202, 0.14);
 }
 
 * {
@@ -91,58 +85,49 @@ REPORT_STYLES = """
 body.report-body {
     margin: 0;
     background: var(--bg-gradient);
-    font-family: "Segoe UI", "Inter", Arial, sans-serif;
-    color: var(--text-primary);
+    font-family: "Inter", "Segoe UI", Arial, sans-serif;
+    color: var(--text);
 }
 
-.report-container {
-    max-width: 1120px;
+.report-shell {
+    max-width: 1180px;
     margin: 0 auto;
-    padding: 56px 38px 72px;
+    padding: 60px 40px 80px;
     position: relative;
-}
-
-.report-container::after {
-    content: "";
-    position: absolute;
-    inset: 12% -12% auto;
-    height: 420px;
-    background: radial-gradient(circle, rgba(79, 70, 229, 0.18), rgba(79, 70, 229, 0));
-    filter: blur(60px);
-    z-index: -1;
 }
 
 .hero {
-    background: linear-gradient(135deg, rgba(79, 70, 229, 0.08), rgba(59, 130, 246, 0.05));
-    border: 1px solid rgba(79, 70, 229, 0.18);
-    border-radius: 24px;
-    padding: 36px 42px;
-    margin-bottom: 36px;
     position: relative;
     overflow: hidden;
+    border-radius: 28px;
+    border: 1px solid var(--border);
+    padding: 40px 48px;
+    background: linear-gradient(140deg, rgba(67, 56, 202, 0.12), rgba(59, 130, 246, 0.06));
     box-shadow: var(--shadow-soft);
 }
 
-.hero::before {
-    content: "";
-    position: absolute;
-    width: 320px;
-    height: 320px;
-    top: -120px;
-    right: -120px;
-    background: radial-gradient(circle, rgba(59, 130, 246, 0.22), rgba(59, 130, 246, 0));
-    filter: blur(4px);
-}
-
+.hero::before,
 .hero::after {
     content: "";
     position: absolute;
-    width: 220px;
-    height: 220px;
-    bottom: -100px;
-    left: -80px;
-    background: radial-gradient(circle, rgba(249, 115, 22, 0.25), rgba(249, 115, 22, 0));
-    filter: blur(6px);
+    border-radius: 50%;
+    filter: blur(62px);
+}
+
+.hero::before {
+    width: 360px;
+    height: 360px;
+    top: -140px;
+    right: -120px;
+    background: rgba(96, 165, 250, 0.25);
+}
+
+.hero::after {
+    width: 320px;
+    height: 320px;
+    bottom: -180px;
+    left: -120px;
+    background: rgba(244, 114, 182, 0.24);
 }
 
 .hero-content {
@@ -151,175 +136,141 @@ body.report-body {
 }
 
 .hero-title {
-    font-size: 2.1rem;
-    margin: 0 0 8px;
+    margin: 0;
+    font-size: 2.25rem;
     font-weight: 700;
-    color: #0f172a;
+    letter-spacing: -0.02em;
 }
 
-.hero-subtitle {
-    margin: 0;
-    font-size: 1rem;
-    color: var(--text-secondary);
-    max-width: 620px;
+hero-subtitle {
+    margin: 12px 0 0;
+    max-width: 600px;
     line-height: 1.6;
+    color: var(--text-subtle);
 }
 
 .hero-badge {
     position: absolute;
-    top: 28px;
-    right: 32px;
-    background: rgba(255, 255, 255, 0.85);
-    color: #1e1b4b;
-    font-weight: 600;
-    padding: 8px 18px;
+    top: 32px;
+    right: 36px;
+    padding: 9px 20px;
     border-radius: 999px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 12px 26px rgba(59, 130, 246, 0.22);
+    font-weight: 600;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
     font-size: 0.78rem;
-    box-shadow: 0 10px 28px rgba(79, 70, 229, 0.18);
 }
 
 .summary-grid {
     display: grid;
-    gap: 18px;
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    margin-bottom: 32px;
+    gap: 20px;
+    margin: 42px 0;
 }
 
 .summary-card {
     position: relative;
     background: var(--surface);
-    border-radius: 20px;
-    padding: 26px 22px 24px 82px;
-    border: 1px solid var(--border-color);
+    border-radius: 22px;
+    padding: 26px 24px;
+    border: 1px solid var(--border);
     box-shadow: var(--shadow-card);
-    overflow: hidden;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-}
-
-.summary-card::before {
-    content: "";
-    position: absolute;
-    width: 44px;
-    height: 44px;
-    top: 22px;
-    left: 20px;
-    border-radius: 14px;
-    background: rgba(79, 70, 229, 0.12);
-    backdrop-filter: blur(4px);
-    border: 1px solid rgba(79, 70, 229, 0.25);
-    box-shadow: 0 10px 18px rgba(79, 70, 229, 0.12);
-}
-
-.summary-card[data-icon="pages"]::after,
-.summary-card[data-icon="alerts"]::after,
-.summary-card[data-icon="diff"]::after,
-.summary-card[data-icon="delta"]::after,
-.summary-card[data-icon="extra"]::after {
-    content: "";
-    position: absolute;
-    width: 24px;
-    height: 24px;
-    top: 32px;
-    left: 30px;
-    background-size: contain;
-    background-repeat: no-repeat;
-}
-
-.summary-card[data-icon="pages"]::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none'%3E%3Crect x='10' y='8' width='28' height='32' rx='6' stroke='%235f6bff' stroke-width='3'/%3E%3Cpath d='M16 18h16M16 26h16M16 34h12' stroke='%235f6bff' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
-}
-
-.summary-card[data-icon="alerts"]::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none'%3E%3Cpath d='M24 8l17 30H7l17-30z' stroke='%23ef4444' stroke-width='3' stroke-linejoin='round'/%3E%3Ccircle cx='24' cy='32' r='2.5' fill='%23ef4444'/%3E%3Cpath d='M24 20v8' stroke='%23ef4444' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E");
-}
-
-.summary-card[data-icon="diff"]::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none'%3E%3Ccircle cx='16' cy='24' r='8' stroke='%23f59e0b' stroke-width='3'/%3E%3Ccircle cx='32' cy='24' r='8' stroke='%235f6bff' stroke-width='3'/%3E%3C/svg%3E");
-}
-
-.summary-card[data-icon="delta"]::after {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48' fill='none'%3E%3Cpath d='M8 34l12-14 10 10 10-18' stroke='%234f46e5' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M34 14h8v8' stroke='%234f46e5' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
 }
 
 .summary-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 18px 40px rgba(79, 70, 229, 0.22);
+    transform: translateY(-6px);
+    box-shadow: 0 26px 50px rgba(64, 80, 181, 0.26);
 }
 
 .summary-label {
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #5c6c9f;
-    margin-bottom: 8px;
-    display: block;
+    color: var(--text-subtle);
 }
 
 .summary-value {
+    display: block;
+    margin-top: 8px;
     font-size: 1.9rem;
     font-weight: 700;
-    color: #0b1a4a;
+}
+
+.category-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 34px;
+}
+
+.category-chip {
+    display: inline-flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 16px;
+    border-radius: 14px;
+    background: rgba(67, 56, 202, 0.08);
+    border: 1px solid rgba(67, 56, 202, 0.18);
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--accent);
+}
+
+.category-chip span {
+    font-weight: 700;
+    color: #1f2937;
 }
 
 .legend-cards {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
-    margin-bottom: 34px;
+    gap: 18px;
+    margin-bottom: 36px;
 }
 
 .legend-card {
     flex: 1 1 220px;
     background: var(--surface);
-    border: 1px solid var(--border-color);
     border-radius: 16px;
-    padding: 14px 18px;
+    border: 1px solid var(--border);
+    padding: 16px 18px;
     display: flex;
     align-items: center;
     gap: 14px;
-    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
 }
 
 .legend-swatch {
     width: 22px;
     height: 22px;
-    border-radius: 8px;
-    border: 1px solid rgba(17, 25, 74, 0.08);
+    border-radius: 6px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
 }
 
-.legend-swatch.diff-missing {
-    background: rgba(255, 106, 106, 0.42);
-}
-
-.legend-swatch.diff-extra {
-    background: rgba(86, 149, 255, 0.4);
-}
-
-.legend-swatch.diff-modified {
-    background: rgba(249, 187, 66, 0.46);
-}
+.legend-swatch.diff-missing { background: rgba(248, 113, 113, 0.28); }
+.legend-swatch.diff-extra { background: rgba(96, 165, 250, 0.26); }
+.legend-swatch.diff-modified { background: rgba(253, 224, 71, 0.38); }
 
 .download-grid {
     display: grid;
-    gap: 18px;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     margin-bottom: 40px;
 }
 
 .download-card {
     background: var(--surface);
-    border-radius: 18px;
-    padding: 22px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 16px 40px rgba(79, 70, 229, 0.16);
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    padding: 22px 24px;
+    box-shadow: var(--shadow-card);
 }
 
 .download-card h3 {
     margin: 0 0 14px;
-    font-size: 1.1rem;
-    color: #111c4e;
+    font-size: 1.05rem;
 }
 
 .download-chip-row {
@@ -331,95 +282,84 @@ body.report-body {
 .download-chip {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
     padding: 9px 18px;
     border-radius: 999px;
-    text-decoration: none;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 600;
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    text-decoration: none;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .download-chip--source {
-    background: rgba(59, 130, 246, 0.15);
-    color: #1e3a8a;
+    background: rgba(59, 130, 246, 0.16);
+    color: #1d4ed8;
 }
 
 .download-chip--target {
     background: rgba(236, 72, 153, 0.16);
-    color: #831843;
+    color: #9d174d;
 }
 
 .download-chip:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 12px 22px rgba(20, 33, 83, 0.18);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 24px rgba(59, 130, 246, 0.2);
 }
 
 .jump-nav {
     background: var(--surface);
     border-radius: 18px;
-    border: 1px solid var(--border-color);
-    padding: 18px 22px;
-    margin-bottom: 32px;
-    box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+    border: 1px solid var(--border);
+    padding: 20px 24px;
+    margin-bottom: 36px;
 }
 
 .jump-nav h2 {
     margin-top: 0;
-    margin-bottom: 12px;
 }
 
 .nav-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    list-style: none;
     padding: 0;
     margin: 0;
-    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
 .nav-list a {
     display: inline-flex;
     align-items: center;
-    padding: 8px 16px;
+    gap: 6px;
+    padding: 8px 14px;
     border-radius: 12px;
     background: var(--accent-soft);
     color: var(--accent);
     text-decoration: none;
     font-weight: 600;
-    font-size: 0.85rem;
-}
-
-.nav-list a:hover {
-    background: rgba(79, 70, 229, 0.22);
+    font-size: 0.84rem;
 }
 
 .report-main {
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 30px;
 }
 
 .page-section {
     background: var(--surface);
-    border-radius: 22px;
-    border: 1px solid var(--border-color);
-    padding: 26px 28px 32px;
-    box-shadow: 0 24px 54px rgba(79, 70, 229, 0.14);
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    padding: 28px 30px 32px;
+    box-shadow: var(--shadow-card);
 }
 
 .page-header {
     display: flex;
-    align-items: baseline;
     justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
     gap: 16px;
-    margin-bottom: 20px;
-}
-
-.page-header h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    color: #0f172a;
+    margin-bottom: 18px;
 }
 
 .page-meta {
@@ -428,55 +368,37 @@ body.report-body {
     flex-wrap: wrap;
 }
 
-.page-meta__clean {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
 .diff-badge {
     display: inline-flex;
-    align-items: center;
     gap: 6px;
+    align-items: center;
     padding: 6px 12px;
     border-radius: 999px;
+    background: rgba(239, 246, 255, 0.9);
     font-weight: 600;
     font-size: 0.78rem;
-    background: rgba(240, 246, 255, 0.9);
 }
 
-.diff-badge--missing {
-    color: var(--badge-missing);
-    border: 1px solid rgba(255, 107, 107, 0.32);
-    background: rgba(255, 107, 107, 0.14);
-}
-
-.diff-badge--extra {
-    color: var(--badge-extra);
-    border: 1px solid rgba(79, 139, 255, 0.35);
-    background: rgba(79, 139, 255, 0.16);
-}
-
-.diff-badge--modified {
-    color: var(--badge-modified);
-    border: 1px solid rgba(246, 183, 60, 0.32);
-    background: rgba(246, 183, 60, 0.18);
+.page-meta__clean {
+    font-size: 0.9rem;
+    color: var(--text-subtle);
+    font-weight: 600;
 }
 
 .page-image-columns {
     display: flex;
     flex-wrap: wrap;
     gap: 18px;
-    margin-bottom: 18px;
+    margin-bottom: 20px;
 }
 
 .page-image-column {
     flex: 1 1 320px;
-    background: #f6f8ff;
+    background: linear-gradient(180deg, rgba(248, 250, 255, 0.95), rgba(248, 250, 255, 0.99));
     border-radius: 18px;
+    border: 1px solid rgba(191, 203, 255, 0.4);
     padding: 16px 16px 18px;
-    border: 1px solid rgba(96, 109, 209, 0.12);
-    box-shadow: inset 0 0 0 1px rgba(96, 109, 209, 0.07);
+    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.12);
 }
 
 .page-image-column h3 {
@@ -488,28 +410,26 @@ body.report-body {
 .page-image-column img {
     width: 100%;
     border-radius: 12px;
-    border: 1px solid rgba(29, 78, 216, 0.22);
-    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+    border: 1px solid rgba(148, 163, 255, 0.35);
+    box-shadow: 0 20px 42px rgba(46, 64, 146, 0.28);
 }
 
 .diff-detail-card {
-    background: linear-gradient(160deg, rgba(238, 242, 255, 0.85), rgba(255, 255, 255, 0.94));
-    border-radius: 18px;
-    border: 1px solid rgba(165, 180, 252, 0.45);
+    background: rgba(247, 250, 255, 0.92);
+    border-radius: 20px;
+    border: 1px solid rgba(196, 203, 255, 0.6);
     padding: 20px 22px;
-    box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.12);
+    margin-bottom: 18px;
 }
 
 .diff-detail-card h3 {
     margin: 0 0 12px;
-    font-size: 1rem;
-    color: #1b2564;
 }
 
 .diff-detail-list {
     list-style: none;
-    padding: 0;
     margin: 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
@@ -533,38 +453,29 @@ body.report-body {
     background: rgba(129, 140, 248, 0.22);
 }
 
-.diff-tag--text {
-    background: rgba(250, 204, 21, 0.28);
-    color: #92400e;
-}
-
-.diff-tag--layout {
-    background: rgba(74, 222, 128, 0.24);
-    color: #166534;
-}
-
-.diff-tag--structure {
-    background: rgba(248, 113, 113, 0.24);
-    color: #7f1d1d;
-}
+.diff-tag--mismatch { background: rgba(250, 204, 21, 0.28); color: #92400e; }
+.diff-tag--spelling { background: rgba(96, 165, 250, 0.26); color: #1d4ed8; }
+.diff-tag--extra { background: rgba(59, 130, 246, 0.18); color: #1e3a8a; }
+.diff-tag--missing { background: rgba(248, 113, 113, 0.24); color: #7f1d1d; }
+.diff-tag--layout { background: rgba(74, 222, 128, 0.24); color: #166534; }
+.diff-tag--structure { background: rgba(251, 191, 36, 0.26); color: #92400e; }
 
 .diff-detail-text {
     font-size: 0.9rem;
     color: #1e293b;
-    line-height: 1.5;
+    line-height: 1.55;
 }
 
 .page-nav {
     display: flex;
     justify-content: space-between;
-    margin-top: 22px;
+    margin-top: 24px;
 }
 
 .page-nav a {
     color: var(--accent);
-    text-decoration: none;
     font-weight: 600;
-    font-size: 0.9rem;
+    text-decoration: none;
 }
 
 .page-nav a:hover {
@@ -573,18 +484,32 @@ body.report-body {
 
 @media (max-width: 768px) {
     .hero {
-        padding: 28px;
+        padding: 32px;
+    }
+    .summary-grid {
+        grid-template-columns: 1fr;
     }
     .page-header {
         flex-direction: column;
         align-items: flex-start;
     }
-    .summary-card {
-        padding: 24px 18px 22px 72px;
-    }
 }
 </style>
 """
+
+CATEGORY_DISPLAY = {
+    "mismatch": "Mismatched text",
+    "spelling": "Spelling error",
+    "extra": "Extra text",
+    "missing": "Missing text",
+}
+
+DETAIL_TAG_CLASS = {
+    "mismatch": "diff-tag diff-tag--mismatch",
+    "spelling": "diff-tag diff-tag--spelling",
+    "extra": "diff-tag diff-tag--extra",
+    "missing": "diff-tag diff-tag--missing",
+}
 
 
 def _spans_to_html(spans: Sequence[Span]) -> str:
@@ -623,38 +548,47 @@ def _image_tag(image_b64: Optional[str]) -> str:
 
 
 def _safe_filename(name: str) -> str:
-    allowed = []
-    for ch in name:
-        if ch.isalnum() or ch in ("_", "-", "."):
-            allowed.append(ch)
-        elif ch.isspace():
-            allowed.append("_")
-    return ''.join(allowed) or 'file'
+    sanitized = [ch if ch.isalnum() or ch in {"_", "-", "."} else "_" for ch in name.strip()]
+    return "".join(sanitized) or "file"
+
+
+def _category_chips(span_totals: Dict[str, int]) -> List[str]:
+    chips: List[str] = []
+    for key, label in CATEGORY_DISPLAY.items():
+        count = span_totals.get(key)
+        if count:
+            chips.append(f"<div class='category-chip'>{label}: <span>{count}</span></div>")
+    return chips
 
 
 def _diff_detail_items(page: PageDiff) -> List[str]:
-    details: List[str] = []
+    items: List[str] = []
     for diff in page.span_diffs:
-        label = "Text"
-        tag_class = "diff-tag diff-tag--text"
-        desc = diff.detail or (diff.target_span.text if diff.target_span else "Text change detected")
-        details.append(
+        category = diff.category or "mismatch"
+        tag_class = DETAIL_TAG_CLASS.get(category, "diff-tag diff-tag--mismatch")
+        label = CATEGORY_DISPLAY.get(category, "Text change")
+        desc = diff.detail or (
+            diff.target_span.text if diff.target_span else "Text change detected"
+        )
+        items.append(
             f"<li class='diff-detail-item'><span class='{tag_class}'>{label}</span><span class='diff-detail-text'>{html.escape(desc)}</span></li>"
         )
     for diff in page.layout_diffs:
         desc = diff.detail or "Layout change detected"
-        details.append(
-            f"<li class='diff-detail-item'><span class='diff-tag diff-tag--layout'>Layout</span><span class='diff-detail-text'>{html.escape(desc)}</span></li>"
+        items.append(
+            "<li class='diff-detail-item'><span class='diff-tag diff-tag--layout'>Layout</span>"
+            f"<span class='diff-detail-text'>{html.escape(desc)}</span></li>"
         )
     for diff in page.structural_diffs:
         desc = diff.description or "Structural change detected"
-        details.append(
-            f"<li class='diff-detail-item'><span class='diff-tag diff-tag--structure'>Structure</span><span class='diff-detail-text'>{html.escape(desc)}</span></li>"
+        items.append(
+            "<li class='diff-detail-item'><span class='diff-tag diff-tag--structure'>Structure</span>"
+            f"<span class='diff-detail-text'>{html.escape(desc)}</span></li>"
         )
-    return details
+    return items
 
 
-def _build_download_sections(results: Sequence[ComparisonResult]) -> List[str]:
+def _build_download_cards(results: Sequence[ComparisonResult]) -> List[str]:
     cards: List[str] = []
     for result in results:
         chips: List[str] = []
@@ -691,8 +625,8 @@ def _build_page_section(
     target_image_b64: Optional[str],
 ) -> str:
     anchor = f"pair{pair_index}-page{page.page_number + 1}"
-
     counts = page.diff_category_counts()
+
     badges: List[str] = []
     if counts.get("missing"):
         badges.append(f"<span class='diff-badge diff-badge--missing'>{counts['missing']} missing</span>")
@@ -722,25 +656,18 @@ def _build_page_section(
             "</div>"
         )
 
-    nav_html = []
-    if prev_anchor:
-        nav_html.append(f"<a href='#{prev_anchor}'>&larr; Previous page</a>")
-    else:
-        nav_html.append("<span></span>")
-    if next_anchor:
-        nav_html.append(f"<a href='#{next_anchor}'>Next page &rarr;</a>")
-    else:
-        nav_html.append("<span></span>")
+    previous_link = f"<a href='#{prev_anchor}'>&larr; Previous page</a>" if prev_anchor else "<span></span>"
+    next_link = f"<a href='#{next_anchor}'>Next page &rarr;</a>" if next_anchor else "<span></span>"
 
     return (
         f"<article id='{anchor}' class='page-section'>"
         "<div class='page-header'>"
-        f"<h2>{html.escape(source_label)} &rarr; {html.escape(target_label)} &mdash; Page {page.page_number + 1}</h2>"
+        f"<h2>{html.escape(source_label)} &rarr; {html.escape(target_label)} â€” Page {page.page_number + 1}</h2>"
         f"<div class='page-meta'>{''.join(badges)}</div>"
         "</div>"
         f"{image_section}"
         f"{detail_html}"
-        f"<div class='page-nav'><div>{nav_html[0]}</div><div>{nav_html[1]}</div></div>"
+        f"<div class='page-nav'><div>{previous_link}</div><div>{next_link}</div></div>"
         "</article>"
     )
 
@@ -767,9 +694,14 @@ def generate_html_report(
     total_pages = 0
     pages_with_diffs = 0
     aggregate_counts: Dict[str, int] = {"missing": 0, "extra": 0, "modified": 0}
+    span_category_totals: Dict[str, int] = {"mismatch": 0, "spelling": 0, "extra": 0, "missing": 0}
 
     for pair_index, result in enumerate(results):
         pair_prefix = f"pair{pair_index}"
+        span_counts = result.span_category_totals()
+        for key in span_category_totals:
+            span_category_totals[key] += span_counts.get(key, 0)
+
         for page in result.pages:
             total_pages += 1
             if page.has_differences():
@@ -804,20 +736,22 @@ def generate_html_report(
                 )
             )
 
+    span_chips = _category_chips(span_category_totals)
+
     summary_cards = [
-        f"<div class='summary-card' data-icon='pages'><span class='summary-label'>Total pages compared</span><span class='summary-value'>{total_pages}</span></div>",
-        f"<div class='summary-card' data-icon='alerts'><span class='summary-label'>Pages with differences</span><span class='summary-value'>{pages_with_diffs}</span></div>",
-        f"<div class='summary-card' data-icon='diff'><span class='summary-label'>Missing elements</span><span class='summary-value'>{aggregate_counts['missing']}</span></div>",
-        f"<div class='summary-card' data-icon='delta'><span class='summary-label'>Extra elements</span><span class='summary-value'>{aggregate_counts['extra']}</span></div>",
-        f"<div class='summary-card' data-icon='extra'><span class='summary-label'>Modified elements</span><span class='summary-value'>{aggregate_counts['modified']}</span></div>",
+        f"<div class='summary-card'><span class='summary-label'>Total pages compared</span><span class='summary-value'>{total_pages}</span></div>",
+        f"<div class='summary-card'><span class='summary-label'>Pages with differences</span><span class='summary-value'>{pages_with_diffs}</span></div>",
+        f"<div class='summary-card'><span class='summary-label'>Missing elements</span><span class='summary-value'>{aggregate_counts['missing']}</span></div>",
+        f"<div class='summary-card'><span class='summary-label'>Extra elements</span><span class='summary-value'>{aggregate_counts['extra']}</span></div>",
+        f"<div class='summary-card'><span class='summary-label'>Modified elements</span><span class='summary-value'>{aggregate_counts['modified']}</span></div>",
     ]
 
-    legend_items = [
+    legend_cards = [
         f"<div class='legend-card'><span class='legend-swatch {css}'></span><span>{label}</span></div>"
         for label, css in COLOR_LEGEND
     ]
 
-    download_cards = _build_download_sections(results)
+    download_cards = _build_download_cards(results)
 
     html_parts = [
         "<!DOCTYPE html>",
@@ -828,48 +762,56 @@ def generate_html_report(
         REPORT_STYLES,
         "</head>",
         "<body class='report-body'>",
-        "<div class='report-container'>",
-        "<header class='hero'>",
+        "<div class='report-shell'>",
+        "<section class='hero'>",
         "<div class='hero-content'>",
         f"<p class='hero-title'>{html.escape(title)}</p>",
-        "<p class='hero-subtitle'>High-fidelity side-by-side comparison across every page, with automated highlighting for missing, extra, and modified content so review teams can approve PDFs with confidence.</p>",
+        "<p class='hero-subtitle'>Automated visual and textual analysis that highlights missing, extra, modified, and misspelled content across insurance PDF deliverables.</p>",
         "</div>",
         "<div class='hero-badge'>Automated QA</div>",
-        "</header>",
+        "</section>",
         "<section>",
         "<div class='summary-grid'>",
         *summary_cards,
         "</div>",
         "</section>",
-        "<section>",
-        "<div class='legend-cards'>",
-        *legend_items,
-        "</div>",
-        "</section>",
     ]
 
+    if span_chips:
+        html_parts.extend([
+            "<section>",
+            "<div class='category-chips'>",
+            *span_chips,
+            "</div>",
+            "</section>",
+        ])
+
+    html_parts.extend([
+        "<section>",
+        "<div class='legend-cards'>",
+        *legend_cards,
+        "</div>",
+        "</section>",
+    ])
+
     if download_cards:
-        html_parts.extend(
-            [
-                "<section>",
-                "<div class='download-grid'>",
-                *download_cards,
-                "</div>",
-                "</section>",
-            ]
-        )
+        html_parts.extend([
+            "<section>",
+            "<div class='download-grid'>",
+            *download_cards,
+            "</div>",
+            "</section>",
+        ])
 
     if nav_items:
-        html_parts.extend(
-            [
-                "<section class='jump-nav'>",
-                "<h2>Jump to page</h2>",
-                "<ul class='nav-list'>",
-                *nav_items,
-                "</ul>",
-                "</section>",
-            ]
-        )
+        html_parts.extend([
+            "<section class='jump-nav'>",
+            "<h2>Jump to page</h2>",
+            "<ul class='nav-list'>",
+            *nav_items,
+            "</ul>",
+            "</section>",
+        ])
 
     html_parts.append("<main class='report-main'>")
     html_parts.extend(sections)
@@ -886,3 +828,4 @@ __all__ = [
     "generate_html_report",
     "STREAMLIT_STYLES",
 ]
+

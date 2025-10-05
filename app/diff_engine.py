@@ -2,7 +2,7 @@
 
 import difflib
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Tuple
 
 try:  # pragma: no cover - runtime import fallback
     from .llm_filter import VariableFieldFilter
@@ -157,13 +157,18 @@ class PDFComparator:
                 for offset in range(i2 - i1):
                     src_span = src_spans[i1 + offset]
                     tgt_span = tgt_spans[j1 + offset]
-                    self._check_layout_difference(page_diff, src_span, tgt_span)
+                    layout_diff = self._check_layout_difference(page_diff, src_span, tgt_span)
+                    if not layout_diff:
+                        if src_span.diff_status is None:
+                            src_span.diff_status = "match"
+                        if tgt_span.diff_status is None:
+                            tgt_span.diff_status = "match"
             elif tag == "replace":
                 span_count = max(i2 - i1, j2 - j1)
                 for offset in range(span_count):
                     src_span = src_spans[i1 + offset] if (i1 + offset) < i2 else None
                     tgt_span = tgt_spans[j1 + offset] if (j1 + offset) < j2 else None
-                    detail = self._describe_text_change(src_span, tgt_span)
+                    detail, category = self._classify_text_change(src_span, tgt_span)
                     if src_span and tgt_span:
                         src_span.diff_status = "modified"
                         tgt_span.diff_status = "modified"
@@ -177,6 +182,7 @@ class PDFComparator:
                             target_span=tgt_span,
                             diff_type=DiffType.TEXT,
                             detail=detail,
+                            category=category,
                         )
                     )
             elif tag == "delete":
@@ -187,17 +193,32 @@ class PDFComparator:
                     page_diff.structural_diffs.append(
                         StructuralDiff(description=detail, bbox=src_span.bbox, related_spans=[src_span])
                     )
+                    page_diff.span_diffs.append(
+                        SpanDiff(
+                            source_span=src_span,
+                            target_span=None,
+                            diff_type=DiffType.TEXT,
+                            detail=detail,
+                            category="missing",
+                        )
+                    )
             elif tag == "insert":
                 for tgt_index in range(j1, j2):
                     tgt_span = tgt_spans[tgt_index]
                     tgt_span.diff_status = "extra"
-                    detail = f"Unexpected text in target: '{tgt_span.text.strip()}'"
+                    detail, category = self._classify_text_change(None, tgt_span)
                     page_diff.span_diffs.append(
-                        SpanDiff(source_span=None, target_span=tgt_span, diff_type=DiffType.TEXT, detail=detail)
+                        SpanDiff(
+                            source_span=None,
+                            target_span=tgt_span,
+                            diff_type=DiffType.TEXT,
+                            detail=detail,
+                            category=category,
+                        )
                     )
         return page_diff
 
-    def _check_layout_difference(self, page_diff: PageDiff, source_span: Span, target_span: Span) -> None:
+    def _check_layout_difference(self, page_diff: PageDiff, source_span: Span, target_span: Span) -> bool:
         sx0, sy0, sx1, sy1 = source_span.bbox
         tx0, ty0, tx1, ty1 = target_span.bbox
         deltas = (tx0 - sx0, ty0 - sy0, tx1 - sx1, ty1 - sy1)
@@ -229,16 +250,47 @@ class PDFComparator:
                     detail="; ".join(detail_parts),
                 )
             )
+            return True
+        return False
 
-    def _describe_text_change(self, source_span: Optional[Span], target_span: Optional[Span]) -> str:
+    def _classify_text_change(
+        self, source_span: Optional[Span], target_span: Optional[Span]
+    ) -> Tuple[str, str]:
         if source_span and target_span:
-            return f"'{source_span.text.strip()}' -> '{target_span.text.strip()}'"
+            src_text = source_span.text.strip()
+            tgt_text = target_span.text.strip()
+            if self._looks_like_spelling_variation(src_text, tgt_text):
+                return (f"Spelling variation: '{src_text}' -> '{tgt_text}'", "spelling")
+            return (f"Mismatched text content: '{src_text}' -> '{tgt_text}'", "mismatch")
         if source_span and not target_span:
-            return f"Removed: '{source_span.text.strip()}'"
+            return (f"Removed text: '{source_span.text.strip()}'", "missing")
         if target_span and not source_span:
-            return f"Added: '{target_span.text.strip()}'"
-        return "Text changed"
+            return (f"Unexpected text: '{target_span.text.strip()}'", "extra")
+        return ("Text changed", "mismatch")
+
+    def _looks_like_spelling_variation(self, source_text: str, target_text: str) -> bool:
+        src_words = source_text.split()
+        tgt_words = target_text.split()
+        if not src_words or len(src_words) != len(tgt_words):
+            return False
+        mismatch_count = 0
+        for src_word, tgt_word in zip(src_words, tgt_words):
+            norm_src = self._normalize_token(src_word)
+            norm_tgt = self._normalize_token(tgt_word)
+            if norm_src == norm_tgt:
+                continue
+            if not norm_src or not norm_tgt:
+                return False
+            ratio = difflib.SequenceMatcher(None, norm_src, norm_tgt).ratio()
+            if ratio >= 0.82 and abs(len(norm_src) - len(norm_tgt)) <= 2:
+                mismatch_count += 1
+            else:
+                return False
+        return mismatch_count > 0
+
+    @staticmethod
+    def _normalize_token(token: str) -> str:
+        return "".join(ch for ch in token.lower() if ch.isalnum())
 
 
 __all__ = ["PDFComparator", "ComparatorSettings"]
-

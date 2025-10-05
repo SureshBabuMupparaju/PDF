@@ -40,6 +40,7 @@ class SpanDiff:
     target_span: Optional[Span]
     diff_type: DiffType = DiffType.TEXT
     detail: str = ""
+    category: Optional[str] = None
 
     @property
     def bbox(self) -> Optional[Tuple[float, float, float, float]]:
@@ -103,6 +104,18 @@ class PageDiff:
         )
         return counts
 
+    def span_category_counts(self) -> Dict[str, int]:
+        counts: Dict[str, int] = {}
+        for diff in self.span_diffs:
+            key = diff.category or "mismatch"
+            counts[key] = counts.get(key, 0) + 1
+        return counts
+
+    def match_count(self) -> int:
+        if not self.target_page:
+            return 0
+        return sum(1 for span in self.target_page.spans if span.diff_status == "match")
+
 
 @dataclass
 class ComparisonResult:
@@ -135,6 +148,21 @@ class ComparisonResult:
                 totals[key] += summary.get(key, 0)
         return totals
 
+    def span_category_totals(self) -> Dict[str, int]:
+        totals: Dict[str, int] = {"mismatch": 0, "spelling": 0, "extra": 0, "missing": 0}
+        for page in self.pages:
+            counts = page.span_category_counts()
+            for key, value in counts.items():
+                totals[key] = totals.get(key, 0) + value
+        return totals
+
+    def match_total(self) -> int:
+        return sum(page.match_count() for page in self.pages)
+
+    def total_compared_tokens(self) -> int:
+        span_totals = self.span_category_totals()
+        return self.match_total() + sum(span_totals.values())
+
 
 @dataclass
 class ReportRow:
@@ -143,3 +171,4 @@ class ReportRow:
     diff_type: DiffType
     description: str
     preview_ref: Optional[str] = None
+    category: Optional[str] = None

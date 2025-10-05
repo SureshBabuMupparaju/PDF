@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import base64
 from typing import List, Optional
@@ -23,7 +23,7 @@ except ImportError:  # pragma: no cover
 
 def _bytes_to_download_link(data: bytes, filename: str, label: str) -> None:
     b64 = base64.b64encode(data).decode()
-    href = f'<a href="data:application/octet-stream;base64,{b64}" download="{filename}">{label}</a>'
+    href = f"<a href='data:application/octet-stream;base64,{b64}' download='{filename}'>{label}</a>"
     st.markdown(href, unsafe_allow_html=True)
 
 
@@ -62,9 +62,7 @@ def _render_image_columns(result: ComparisonResult) -> None:
         else:
             cols[1].info("Preview unavailable.")
 
-    st.caption(
-        "Red = missing content, Blue = extra content, Yellow = modified content."
-    )
+    st.caption("Red = missing content, Blue = extra content, Yellow = modified content.")
 
 
 def run_app() -> None:
@@ -184,6 +182,7 @@ def run_app() -> None:
                             "Pair": row.pair_label,
                             "Page": row.page_number,
                             "Type": row.diff_type.value,
+                            "Category": row.category or "",
                             "Description": row.description,
                             "Preview Ref": row.preview_ref,
                         }
